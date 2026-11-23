@@ -16,6 +16,67 @@
 <br>
 </div>
 
+> [!NOTE]
+> **This is an unofficial, personal fork of [Morphe Manager](https://github.com/MorpheApp/morphe-manager).**
+> It is not affiliated with or supported by the Morphe team. Report problems with this fork here, not
+> to the Morphe project. Everything below this section is the original Morphe README.
+
+## 🔀 Changes in this fork
+
+The changes all aim at one thing: getting from "I want this app patched" to a patched app with as
+few steps as possible.
+
+### Home screen
+- **Only installed apps.** The app list shows just the apps installed on the device, across every
+  patch source, instead of every app the sources support.
+- **Community sources added automatically.** On launch, Morphe reads the catalog behind the
+  [community patches website](https://morphe-patches.software). For each installed app that no source
+  covers yet, it adds the community source with the most GitHub stars that has published a
+  release. Each source is added only for the apps it was chosen for. An app is handled once, so a source
+  you remove or narrow stays that way.
+- **No third-party notice.** The community patches link opens the website directly, without the
+  warning dialog.
+
+### Getting the original APK
+- **Installed app used automatically.** If the app's installed version is one the patches support,
+  Morphe copies it from the device and goes straight to patching, with no dialog and no download.
+- **In-app download from APKMirror.** When a different version is needed, *Yes, help me find an APK*
+  downloads it inside Morphe instead of sending you to the browser:
+  - the page loads in a hidden WebView that may only load from APKMirror and Cloudflare's challenge
+    host, so ads, trackers and their redirects never load;
+  - navigation is limited to that app's pages on APKMirror, and pop-ups are disabled;
+  - Morphe presses the download buttons itself, picks the variant for the device (matching ABI, full
+    APK over bundle, nodpi), and takes the file straight into its private storage;
+  - only a Cloudflare check is ever shown, for you to complete;
+  - if the page can't be walked, **Try again** or **Open website** falls back to the usual
+    instructions. Downloads from other sites use the usual instructions too.
+- **Originals not kept.** *Keep original APKs* is off by default, and the downloaded or copied
+  original is deleted once patching is done.
+
+### Patched apps
+- **Original launcher icon by default.** Any app icon option you haven't set is patched as
+  **Original**, wherever the patch offers that choice (currently Custom branding for YouTube and
+  YouTube Music). An icon you pick yourself still wins.
+
+### Caveats
+- The in-app download depends on APKMirror's page layout and may need updating if it changes.
+- It skips APKMirror's ads entirely.
+- Community sources are written by third parties and are not reviewed by Morphe or by this fork.
+- Builds of this fork are signed with your own key. They can't update apps patched by the official
+  Morphe Manager without uninstalling those first.
+
+### Building
+Builds need JDK 17 and JDK 25 toolchains, the Android SDK (platform 37), and a GitHub token with the
+`read:packages` scope for Morphe's package registry, for example:
+
+```bash
+GITHUB_ACTOR=<your-github-user> GITHUB_TOKEN=$(gh auth token) ./gradlew :app:assembleDebug
+```
+
+The debug build installs as `app.morphe.manager.debug`, next to the official app.
+
+---
+
 &nbsp;
 <p align="center">
   <a href="https://morphe.software" title="Download Morphe">
