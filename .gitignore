@@ -133,3 +133,7 @@ local.properties
 AGENT.md
 .gitignore
 to-do.txt
+
+# Release signing key of this fork, never committed
+*.jks
+*.keystore
