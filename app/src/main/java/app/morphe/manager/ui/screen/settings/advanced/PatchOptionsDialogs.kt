@@ -5,6 +5,7 @@
 
 package app.morphe.manager.ui.screen.settings.advanced
 
+import app.morphe.manager.util.OriginalAppIcon
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,7 +44,6 @@ fun DialogHostScope.CustomBrandingDialog(
     // Get current values from preferences, read again for another app
     val appName = remember(packageName) { mutableStateOf(patchOptionsPrefs.customAppName(packageName).getBlocking()) }
     val iconPath = remember(packageName) { mutableStateOf(patchOptionsPrefs.customIconPath(packageName).getBlocking()) }
-    val appIconStyle = remember(packageName) { mutableStateOf(patchOptionsPrefs.appIconStyle(packageName).getBlocking()) }
 
     // Get branding options from bundle
     val brandingOptions = patchOptionsViewModel.getBrandingOptions(packageName)
@@ -53,6 +53,15 @@ fun DialogHostScope.CustomBrandingDialog(
         .getOption(brandingOptions, PatchOptionKeys.APP_ICON)
         ?.presets
         .orEmpty()
+
+    // An icon never picked is patched as the original one, so the dialog shows it that way
+    val appIconStyle = remember(packageName) {
+        mutableStateOf(
+            patchOptionsPrefs.appIconStyle(packageName).getBlocking().ifBlank {
+                if (OriginalAppIcon.offersOriginalIcon(appIconStyles)) OriginalAppIcon.VALUE else ""
+            }
+        )
+    }
 
     // The custom icon style has no images of its own, so the patch fails the run without a folder
     val missingCustomIcon = appIconStyle.value == PatchOptionKeys.APP_ICON_CUSTOM &&

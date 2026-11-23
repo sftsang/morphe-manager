@@ -529,7 +529,13 @@ class HomeApps(
 
         val enabledInfo = ready.info.filter { (_, info) -> info.enabled }
         val (metadata, bundleNames) = homeMetadataFor(ready.info, enabledInfo)
-        val appsBySource = enabledInfo.mapValues { (_, info) -> info.appsBrought(keptFrom) }
+        // One query for installed packages instead of one per card
+        val installedPackages = pm.getInstalledPackages().mapTo(HashSet()) { it.packageName }
+
+        // Only apps installed on this device are listed, whichever source brings them
+        val appsBySource = enabledInfo.mapValues { (_, info) ->
+            info.appsBrought(keptFrom).filterTo(mutableSetOf()) { it in installedPackages }
+        }
         val packages = appsBySource.values.flatMapTo(mutableSetOf()) { it }
         val sourceGroups = buildHomeAppSourceGroups(
             enabledInfo = enabledInfo,
@@ -538,9 +544,6 @@ class HomeApps(
             sortMode = homePrefs.sortMode,
             sourceOrders = homePrefs.sourceOrders
         )
-
-        // One query for installed packages instead of one per card
-        val installedPackages = pm.getInstalledPackages().mapTo(HashSet()) { it.packageName }
 
         suspend fun buildItem(slot: HomeAppSlot): HomeAppItem {
             val packageName = slot.packageName
@@ -634,7 +637,11 @@ class HomeApps(
 
         // Apps patched through "Other apps" and apps no source brings anymore are not in the
         // list, but still need cards so users can reinstall/uninstall/see updates
-        val allSlots = homeAppSlots(packages, installedApps)
+        // Patched records count while their build is still on the device
+        val allSlots = homeAppSlots(packages, installedApps).filter { slot ->
+            (slot.installedApp?.currentPackageName ?: slot.id) in installedPackages ||
+                    slot.packageName in installedPackages
+        }
 
         val visibleSlots = allSlots.filter { it.id !in homePrefs.hiddenPackages }
         val hiddenSlots = allSlots.filter { it.id in homePrefs.hiddenPackages }

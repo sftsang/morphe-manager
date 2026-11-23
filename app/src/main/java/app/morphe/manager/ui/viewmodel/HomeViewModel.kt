@@ -88,6 +88,10 @@ class HomeViewModel(
     // Past the parameters viewModelOf takes
     private val patcherProcesses: PatcherProcesses by inject()
     private val patchOptionsPrefs: PatchOptionsPreferencesManager by inject()
+    private val communitySourceSync: CommunitySourceSync by inject()
+
+    /** Where the in-app download puts the APK, private to Morphe and never cleared by the system. */
+    val inAppDownloadDir: java.io.File = filesystem.uiTempDir
 
     /** The app list on the home screen. */
     val apps = HomeApps(
@@ -340,6 +344,8 @@ class HomeViewModel(
         }
         observeLoadingState()
         observeSnackbarState()
+        // Community sources for the installed apps no source here brings yet
+        viewModelScope.launch(Dispatchers.IO) { communitySourceSync.syncOnce() }
     }
 
     /**

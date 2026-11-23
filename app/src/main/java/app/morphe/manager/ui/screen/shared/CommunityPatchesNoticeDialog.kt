@@ -6,9 +6,7 @@
 package app.morphe.manager.ui.screen.shared
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.res.stringResource
 import app.morphe.manager.R
 import app.morphe.manager.domain.manager.PreferencesManager
@@ -19,16 +17,14 @@ import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 /**
- * Opens the community patches website, or calls [onNoticeNeeded] for the caller to show
- * [CommunityPatchesNoticeDialog] while the user has not yet agreed to it.
+ * Opens the community patches website straight away. The third-party notice is never shown, so
+ * [onNoticeNeeded] is kept only for the callers' signature and is not called.
  */
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun rememberOpenCommunityPatches(onNoticeNeeded: () -> Unit): () -> Unit {
-    val prefs: PreferencesManager = koinInject()
-    val acknowledged by prefs.communityNoticeAcknowledged.getAsState()
     val openUrl = rememberOpenUrl()
-    val currentOnNoticeNeeded by rememberUpdatedState(onNoticeNeeded)
-    return { if (acknowledged) openUrl(COMMUNITY_PATCHES_URL) else currentOnNoticeNeeded() }
+    return { openUrl(COMMUNITY_PATCHES_URL) }
 }
 
 /**

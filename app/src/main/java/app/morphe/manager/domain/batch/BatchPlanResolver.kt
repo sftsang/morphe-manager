@@ -5,6 +5,7 @@
 
 package app.morphe.manager.domain.batch
 
+import app.morphe.manager.util.OriginalAppIcon
 import android.content.pm.PackageInfo
 import android.os.Build
 import android.util.Log
@@ -563,13 +564,16 @@ class BatchPlanResolver(
         bundles: List<PatchBundleInfo.Scoped>,
         selectedByHand: Boolean
     ): Options {
+        val patchesByName = bundles.associate { it.uid to it.patches.associateBy { patch -> patch.name } }
         if (!selectedByHand) {
-            return runCatching { patchOptionsPrefs.exportPatchOptions(target.packageName) }
-                .getOrDefault(emptyMap())
+            // An icon left unset keeps the original app's icon
+            return OriginalAppIcon.withDefaults(
+                runCatching { patchOptionsPrefs.exportPatchOptions(target.packageName) }.getOrDefault(emptyMap()),
+                patchesByName
+            )
         }
 
         val uids = bundles.mapTo(mutableSetOf()) { it.uid }
-        val patchesByName = bundles.associate { it.uid to it.patches.associateBy { patch -> patch.name } }
         val saved = patchOptionsRepository.getAllOptionsForPackage(configurationKey, patchesByName)
             .filterKeys { it in uids }
         return validatePatchOptions(saved, patchesByName)

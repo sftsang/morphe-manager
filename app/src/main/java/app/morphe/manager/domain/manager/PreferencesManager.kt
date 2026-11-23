@@ -131,6 +131,12 @@ class PreferencesManager(
     /** Set once the user has agreed to the third-party notice, after which the community website opens at once. */
     val communityNoticeAcknowledged = booleanPreference("community_notice_acknowledged", false)
 
+    /**
+     * Installed apps a community source has already been picked for, see CommunitySourceSync.
+     * An app is only handled once, so a source the user later removes or narrows stays that way.
+     */
+    val communityHandledApps = stringSetPreference("community_handled_apps_v2", emptySet())
+
     val useExpertMode = booleanPreference("use_expert_mode", false)
 
     val stripUnusedNativeLibs = booleanPreference("strip_unused_native_libs", false)
@@ -220,7 +226,7 @@ class PreferencesManager(
     val apkManagementSortMode = enumPreference("apk_management_sort_mode", ApkSortMode.NAME)
 
     /** Persist the pre-patch APK so it can be reused for repatching without asking the user to reselect it. */
-    val saveOriginalApks = booleanPreference("save_original_apks", true)
+    val saveOriginalApks = booleanPreference("save_original_apks", false)
 
     /** Persist the post-patch APK so it can be exported or reinstalled after the patcher screen is closed. */
     val savePatchedApks = booleanPreference("save_patched_apks", true)

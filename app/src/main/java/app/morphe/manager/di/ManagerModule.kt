@@ -13,6 +13,7 @@ package app.morphe.manager.di
 import app.morphe.manager.domain.apk.ApkSignatureCache
 import app.morphe.manager.domain.apk.LocalApkSources
 import app.morphe.manager.domain.backup.AutoBackup
+import app.morphe.manager.domain.bundles.CommunitySourceSync
 import app.morphe.manager.domain.backup.SettingsExporter
 import app.morphe.manager.domain.batch.BatchPatchCoordinator
 import app.morphe.manager.domain.batch.BatchPlanResolver
@@ -59,6 +60,7 @@ val managerModule = module {
     singleOf(::ContentTranslation)
     singleOf(::AppLinksManager)
     singleOf(::UserMessages)
+    singleOf(::CommunitySourceSync)
     singleOf(::JvmInstallation)
     singleOf(::PatcherProcesses)
     single { ForegroundWork(ForegroundHoldService.Host(androidContext())) }

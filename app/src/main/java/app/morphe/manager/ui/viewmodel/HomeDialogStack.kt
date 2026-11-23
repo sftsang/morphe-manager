@@ -33,6 +33,8 @@ sealed interface HomeDialog {
     sealed interface ApkSource : HomeDialog
     data object ApkAvailability : ApkSource
     data object DownloadInstructions : ApkSource
+    /** Morphe downloading the APK itself, from a filtered page kept out of sight. */
+    data object InAppDownload : ApkSource
     data object FilePickerPrompt : ApkSource
     data object InstalledAppPicker : ApkSource
 

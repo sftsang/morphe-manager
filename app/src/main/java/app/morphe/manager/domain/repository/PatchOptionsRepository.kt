@@ -16,6 +16,7 @@ import app.morphe.manager.data.room.options.Option
 import app.morphe.manager.data.room.options.OptionGroup
 import app.morphe.manager.patcher.patch.PatchInfo
 import app.morphe.manager.util.LOG_TAG
+import app.morphe.manager.util.OriginalAppIcon
 import app.morphe.manager.util.Options
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -37,13 +38,16 @@ class PatchOptionsRepository(db: AppDatabase) {
         packageName: String,
         bundleUid: Int,
         bundlePatchInfo: Map<String, PatchInfo>
-    ): Map<String, Map<String, Any?>> =
-        dao.getOptionsForBundle(packageName, bundleUid).readAgainst(
+    ): Map<String, Map<String, Any?>> {
+        val saved = dao.getOptionsForBundle(packageName, bundleUid).readAgainst(
             bundlePatchInfo,
             Option::patchName,
             Option::key,
             Option::value
         )
+        // An icon left unset keeps the original app's icon
+        return OriginalAppIcon.withDefaults(mapOf(bundleUid to saved), mapOf(bundleUid to bundlePatchInfo))[bundleUid].orEmpty()
+    }
 
     /**
      * Get all options for a package across all bundles
@@ -51,8 +55,8 @@ class PatchOptionsRepository(db: AppDatabase) {
     suspend fun getAllOptionsForPackage(
         packageName: String,
         bundlePatches: Map<Int, Map<String, PatchInfo>>
-    ): Map<Int, Map<String, Map<String, Any?>>> =
-        dao.getOptions(packageName).mapValues { (sourceUid, bundlePatchOptionsList) ->
+    ): Map<Int, Map<String, Map<String, Any?>>> {
+        val saved = dao.getOptions(packageName).mapValues { (sourceUid, bundlePatchOptionsList) ->
             bundlePatchOptionsList.readAgainst(
                 bundlePatches[sourceUid].orEmpty(),
                 Option::patchName,
@@ -60,6 +64,9 @@ class PatchOptionsRepository(db: AppDatabase) {
                 Option::value
             )
         }
+        // An icon left unset keeps the original app's icon
+        return OriginalAppIcon.withDefaults(saved, bundlePatches)
+    }
 
     /**
      * Save options for multiple bundles for a package

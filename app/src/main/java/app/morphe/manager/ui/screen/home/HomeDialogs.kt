@@ -268,7 +268,7 @@ private fun DialogHostScope.PatchFlowDialog(
             hiddenSourceCount = session.hiddenSources,
             onDismiss = flow::backFromApkSource,
             onHaveApk = storagePickerLauncher,
-            onNeedApk = { apkDownloadHelpers.showInstructions(flow::showDownloadInstructions) },
+            onNeedApk = flow::startInAppDownload,
             onUseSaved = flow::handleSavedApkSelection,
             onUseInstalled = flow::handleInstalledApkSelection
         )
@@ -294,6 +294,21 @@ private fun DialogHostScope.PatchFlowDialog(
                 onOpenApkDownloadHelper = apkDownloadHelpers.open,
                 onTrustApkDownloadHelpers = onTrustApkDownloadHelpers.takeIf { apkDownloadHelpers.hasUntrusted },
                 onContinue = flow::handleDownloadInstructionsContinue
+            )
+        }
+
+        // Dialog 2b: Morphe downloading the APK itself
+        HomeDialog.InAppDownload -> {
+            session ?: return
+            InAppApkDownloadDialog(
+                appName = session.appName,
+                packageName = session.packageName,
+                version = session.requestedVersion,
+                downloadUrl = session.downloadUrl,
+                tempDir = homeViewModel.inAppDownloadDir,
+                onDownloaded = flow::handleInAppDownloaded,
+                onOpenWebsite = { flow.inAppDownloadToWebsite() },
+                onDismiss = flow::backFromApkSource
             )
         }
 

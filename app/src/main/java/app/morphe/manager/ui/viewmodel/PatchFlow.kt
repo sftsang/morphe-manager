@@ -419,6 +419,7 @@ class PatchFlow(
         // parallel. The device is asked about in both modes, because the version list marks the
         // installed version even where the installed APK itself is not offered as a source
         val expertMode = isExpertMode()
+        var installedSource: InstalledAppSource? = null
         coroutineScope {
             val savedJob = if (session?.savedApk == null) {
                 async(Dispatchers.IO) { localApkSources.saved(packageName) }
@@ -426,7 +427,8 @@ class PatchFlow(
             val installedJob = async(Dispatchers.IO) { localApkSources.installed(packageName) }
             val hiddenJob = async(Dispatchers.IO) { patchBundleRepository.hiddenSourceCount(packageName) }
             savedJob?.await()?.let { saved -> session = session?.copy(savedApk = saved) }
-            applyInstalledAppSource(installedJob.await(), offersApk = expertMode)
+            installedSource = installedJob.await()
+            applyInstalledAppSource(installedSource, offersApk = expertMode)
             session = session?.copy(hiddenSources = hiddenJob.await())
         }
 
@@ -436,9 +438,18 @@ class PatchFlow(
                 current.recommendedVersion != null &&
                 current.savedApk.version == current.recommendedVersion.version
 
+        // The app on the device at a version the patches take needs no download at all. One whose
+        // patch state could not be read goes to the dialog, which says so
+        val autoInstalledApk = installedSource?.apk
+            .patchableBy(current.compatibleVersions)
+            ?.takeUnless { it.patchStateUnknown }
+
         if (shouldAutoUseSaved) {
             // Skip dialog and use saved APK directly
             handleSavedApkSelection()
+        } else if (autoInstalledApk != null) {
+            session = current.copy(installedApk = autoInstalledApk)
+            handleInstalledApkSelection()
         } else {
             // Show dialog
             dialogs.advanceTo(HomeDialog.ApkAvailability)
@@ -686,7 +697,7 @@ class PatchFlow(
     /**
      * Handle APK file selection.
      */
-    fun handleApkSelection(uri: Uri?) {
+    fun handleApkSelection(uri: Uri?, deleteAfterLoad: File? = null) {
         // Nothing picked leaves the run at the dialog the picker was opened from, if any is left
         if (uri == null) {
             if (dialogs.entries.all { it is HomeDialog.AppInfo }) endRun()
@@ -696,7 +707,8 @@ class PatchFlow(
             processingApkSelection = true
             try {
                 val result = withContext(Dispatchers.IO) {
-                    loadLocalApk(uri)
+                    // The load copies the file for the run, so a download is gone from here on
+                    try { loadLocalApk(uri) } finally { deleteAfterLoad?.delete() }
                 }
 
                 when (result) {
@@ -1213,7 +1225,11 @@ class PatchFlow(
         // made by hand carries its own, see proceedExpertMode
         suspend fun proceedWithSimpleSelection(patches: PatchSelection, allowIncompatible: Boolean) {
             val options = withContext(Dispatchers.IO) {
-                patchOptionsPrefs.exportPatchOptions(selectedApp.packageName)
+                // An icon left unset keeps the original app's icon
+                OriginalAppIcon.withDefaults(
+                    patchOptionsPrefs.exportPatchOptions(selectedApp.packageName),
+                    allBundles.associate { it.uid to it.patches.associateBy { patch -> patch.name } }
+                )
             }
             proceedWithPatching(
                 selectedApp,
@@ -1552,6 +1568,24 @@ class PatchFlow(
     fun showDownloadInstructions() {
         dialogs.open(HomeDialog.DownloadInstructions)
         resolveDownloadRedirect()
+    }
+
+    /** Has Morphe download the APK itself, over the APK availability, which going back returns to. */
+    fun startInAppDownload() {
+        dialogs.open(HomeDialog.InAppDownload)
+        resolveDownloadRedirect()
+    }
+
+    /** Leaves the in-app download for the usual instructions, which open the website. */
+    fun inAppDownloadToWebsite() {
+        (dialogs.top as? HomeDialog.InAppDownload)?.let(dialogs::close)
+        showDownloadInstructions()
+    }
+
+    /** Takes the APK the in-app download fetched as if it had been picked, and drops the download. */
+    fun handleInAppDownloaded(file: File) {
+        (dialogs.top as? HomeDialog.InAppDownload)?.let(dialogs::close)
+        handleApkSelection(Uri.fromFile(file), deleteAfterLoad = file)
     }
 
     /**
